@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -14,7 +14,7 @@ datasource db {
 // Staff / agents who own leads and bookings
 // ---------------------------------------------------------------------------
 model Agent {
-  id          String   @id @default(cuid())
+  id          String   @id @default(cuid()) @map("_id")
   name        String
   email       String   @unique
   phone       String?
@@ -36,7 +36,7 @@ model Agent {
 // Leads & Contacts — the heart of the pipeline
 // ---------------------------------------------------------------------------
 model Lead {
-  id          String   @id @default(cuid())
+  id          String   @id @default(cuid()) @map("_id")
   name        String
   email       String?
   phone       String?
@@ -65,7 +65,7 @@ model Lead {
 
 // Follow-ups, calls, notes, tasks attached to a lead
 model Activity {
-  id        String    @id @default(cuid())
+  id        String    @id @default(cuid()) @map("_id")
   leadId    String
   lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
   type      String    @default("NOTE") // NOTE | CALL | EMAIL | WHATSAPP | MEETING | TASK
@@ -80,7 +80,7 @@ model Activity {
 // Bookings & Itineraries
 // ---------------------------------------------------------------------------
 model Booking {
-  id          String   @id @default(cuid())
+  id          String   @id @default(cuid()) @map("_id")
   reference   String   @unique // e.g. PDH-2026-0007
   title       String
   destination String
@@ -106,7 +106,7 @@ model Booking {
 }
 
 model ItineraryDay {
-  id         String   @id @default(cuid())
+  id         String   @id @default(cuid()) @map("_id")
   bookingId  String
   booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   dayNumber  Int
@@ -123,7 +123,7 @@ model ItineraryDay {
 // Quotes
 // ---------------------------------------------------------------------------
 model Quote {
-  id         String   @id @default(cuid())
+  id         String   @id @default(cuid()) @map("_id")
   number     String   @unique // QT-2026-0012
   leadId     String
   lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
@@ -143,7 +143,7 @@ model Quote {
 }
 
 model QuoteItem {
-  id        String @id @default(cuid())
+  id        String @id @default(cuid()) @map("_id")
   quoteId   String
   quote     Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   label     String
@@ -157,7 +157,7 @@ model QuoteItem {
 // Invoices & Payments
 // ---------------------------------------------------------------------------
 model Invoice {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   number    String   @unique // INV-2026-0034
   leadId    String
   lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
@@ -180,7 +180,7 @@ model Invoice {
 }
 
 model InvoiceItem {
-  id        String @id @default(cuid())
+  id        String @id @default(cuid()) @map("_id")
   invoiceId String
   invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   label     String
@@ -191,7 +191,7 @@ model InvoiceItem {
 }
 
 model Payment {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   invoiceId String
   invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   amount    Float
@@ -205,7 +205,7 @@ model Payment {
 // Social media — channels & posts
 // ---------------------------------------------------------------------------
 model SocialAccount {
-  id          String  @id @default(cuid())
+  id          String  @id @default(cuid()) @map("_id")
   channel     String  @unique // Instagram | Facebook | WhatsApp | YouTube | X | LinkedIn
   handle      String
   followers   Int     @default(0)
@@ -220,7 +220,7 @@ model SocialAccount {
 }
 
 model SocialPost {
-  id          String    @id @default(cuid())
+  id          String    @id @default(cuid()) @map("_id")
   channel     String    // Instagram | Facebook | WhatsApp | YouTube | X | LinkedIn
   content     String
   campaign    String?
@@ -238,7 +238,7 @@ model SocialPost {
 // Events management (weddings, corporate MICE, group tours, festivals)
 // ---------------------------------------------------------------------------
 model Event {
-  id         String   @id @default(cuid())
+  id         String   @id @default(cuid()) @map("_id")
   title      String
   type       String   @default("Group Tour") // Wedding | Corporate | MICE | Festival | Group Tour
   status     String   @default("PLANNING") // PLANNING | CONFIRMED | ONGOING | COMPLETED | CANCELLED
@@ -259,7 +259,7 @@ model Event {
 }
 
 model EventAssignment {
-  id      String @id @default(cuid())
+  id      String @id @default(cuid()) @map("_id")
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
   agentId String
@@ -274,7 +274,7 @@ model EventAssignment {
 // ===========================================================================
 
 model Tour {
-  id           String   @id @default(cuid())
+  id           String   @id @default(cuid()) @map("_id")
   title        String
   code         String?
   category     String   @default("Domestic")   // Domestic | International
@@ -292,7 +292,7 @@ model Tour {
 }
 
 model Destination {
-  id          String   @id @default(cuid())
+  id          String   @id @default(cuid()) @map("_id")
   name        String
   category    String   @default("City") // Country | State | City | Attraction | Fort | Temple | Beach | Hill Station | Wildlife
   country     String   @default("India")
@@ -304,7 +304,7 @@ model Destination {
 }
 
 model Hotel {
-  id             String   @id @default(cuid())
+  id             String   @id @default(cuid()) @map("_id")
   name           String
   city           String   @default("Jaipur")
   stars          Int      @default(3)
@@ -320,7 +320,7 @@ model Hotel {
 }
 
 model Vehicle {
-  id           String   @id @default(cuid())
+  id           String   @id @default(cuid()) @map("_id")
   model        String
   type         String   @default("Sedan") // Sedan | SUV | Tempo Traveller | Bus | Luxury Coach
   registration String?
@@ -334,7 +334,7 @@ model Vehicle {
 }
 
 model Guide {
-  id             String   @id @default(cuid())
+  id             String   @id @default(cuid()) @map("_id")
   name           String
   languages      String   @default("Hindi, English")
   city           String   @default("Jaipur")
@@ -348,7 +348,7 @@ model Guide {
 }
 
 model Vendor {
-  id             String   @id @default(cuid())
+  id             String   @id @default(cuid()) @map("_id")
   name           String
   type           String   @default("Hotel") // Hotel | Airline | Transport | Restaurant | Activity Provider | Local Partner
   contactPerson  String?
@@ -362,7 +362,7 @@ model Vendor {
 }
 
 model Excursion {
-  id          String   @id @default(cuid())
+  id          String   @id @default(cuid()) @map("_id")
   name        String
   type        String   @default("Sightseeing") // Sightseeing | Adventure | Museum | Theme Park | Local Tour | Event Ticket
   city        String   @default("Jaipur")
@@ -373,7 +373,7 @@ model Excursion {
 }
 
 model Traveler {
-  id               String    @id @default(cuid())
+  id               String    @id @default(cuid()) @map("_id")
   name             String
   email            String?
   phone            String?
@@ -389,7 +389,7 @@ model Traveler {
 }
 
 model Flight {
-  id        String    @id @default(cuid())
+  id        String    @id @default(cuid()) @map("_id")
   airline   String
   flightNo  String?
   pnr       String?
@@ -404,7 +404,7 @@ model Flight {
 }
 
 model TravelDocument {
-  id        String    @id @default(cuid())
+  id        String    @id @default(cuid()) @map("_id")
   title     String
   type      String    @default("Passport") // Passport | Visa | Ticket | Hotel Voucher | Insurance | Invoice | Travel Permit | Agreement
   owner     String?
@@ -416,7 +416,7 @@ model TravelDocument {
 }
 
 model Review {
-  id        String   @id @default(cuid())
+  id        String   @id @default(cuid()) @map("_id")
   traveler  String
   type      String   @default("Review") // Review | Complaint | Suggestion
   rating    Int      @default(5)
@@ -431,7 +431,7 @@ model Review {
 // Company settings / branding
 // ---------------------------------------------------------------------------
 model Setting {
-  id           String  @id @default("company")
+  id           String  @id @default("company") @map("_id")
   companyName  String  @default("Padhaaro Sa..")
   tagline      String  @default("Hospitality Services")
   email        String  @default("hello@padhaaro.com")

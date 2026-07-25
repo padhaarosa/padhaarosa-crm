@@ -10,11 +10,11 @@
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev --name init",
+    "db:migrate": "prisma db push",
     "db:seed": "node --loader ts-node/esm prisma/seed.ts",
     "seed": "tsx prisma/seed.ts",
     "reset": "tsx prisma/reset.ts",
-    "setup": "prisma generate && prisma migrate dev --name init && tsx prisma/seed.ts"
+    "setup": "prisma generate && prisma db push && tsx prisma/seed.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
