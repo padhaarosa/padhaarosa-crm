@@ -1,0 +1,158 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Fraunces", Georgia, serif;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-cream text-ink font-sans;
+    background-image:
+      radial-gradient(circle at 0% 0%, rgba(193, 90, 63, 0.05), transparent 42%),
+      radial-gradient(circle at 100% 0%, rgba(110, 95, 114, 0.05), transparent 42%);
+    background-attachment: fixed;
+  }
+
+  * {
+    @apply border-line;
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-brand-900;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-white shadow-card border border-line/70;
+  }
+
+  .stat-tile {
+    @apply card p-5 relative overflow-hidden;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold
+      transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+      focus-visible:ring-brand-400 disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap;
+  }
+  .btn-primary {
+    @apply btn bg-brand-500 text-white hover:bg-brand-600 shadow-soft active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply btn bg-white text-ink border border-line hover:bg-cream-200 hover:border-brand-200;
+  }
+  .btn-ghost {
+    @apply btn text-ink-soft hover:bg-cream-200 hover:text-ink;
+  }
+  .btn-danger {
+    @apply btn bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs rounded-lg;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink
+      placeholder:text-ink-faint shadow-soft transition
+      focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100;
+  }
+  .label {
+    @apply block text-[11px] font-semibold uppercase tracking-wide text-ink-soft mb-1;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold
+      ring-1 ring-inset;
+  }
+
+  .table-th {
+    @apply px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-faint whitespace-nowrap;
+  }
+  .table-td {
+    @apply px-4 py-3.5 text-sm text-ink align-middle;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-plum-100/80
+      transition-all duration-150 hover:bg-white/10 hover:text-white;
+  }
+  .nav-link-active {
+    @apply bg-white/95 text-plum-800 shadow-soft hover:bg-white hover:text-plum-800;
+  }
+
+  .section-title {
+    @apply font-display text-lg font-semibold text-ink;
+  }
+}
+
+/* thin custom scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d8cbbb transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #d8cbbb;
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ---------- Print (invoices / quotes) ---------- */
+/* Force background colours/gradients to render in print & PDF (header, badges, totals). */
+.print-area,
+.print-area * {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+@media print {
+  html,
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  /* strip ALL app-shell spacing so the document uses the full paper width */
+  main {
+    padding: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  .print-area {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  /* keep the coloured brand header on the printed page */
+  .print-header {
+    background: linear-gradient(90deg, #352c3a 0%, #5c2a2a 100%) !important;
+    color: #ffffff !important;
+  }
+  @page {
+    margin: 8mm 10mm;
+  }
+}

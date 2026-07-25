@@ -1,0 +1,449 @@
+// Padhaaro Sa.. — Travel & Hospitality CRM
+// Data model powering Leads, Bookings, Itineraries, Quotes, Invoices & Payments.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Staff / agents who own leads and bookings
+// ---------------------------------------------------------------------------
+model Agent {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  phone       String?
+  role        String   @default("Agent") // Admin | Manager | Agent
+  designation String   @default("Travel Consultant")
+  department  String   @default("Sales")
+  location    String   @default("Jaipur")
+  target      Float    @default(500000) // monthly revenue target
+  active      Boolean  @default(true)
+  joinedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  leads       Lead[]
+  bookings    Booking[]
+  eventRoles  EventAssignment[]
+}
+
+// ---------------------------------------------------------------------------
+// Leads & Contacts — the heart of the pipeline
+// ---------------------------------------------------------------------------
+model Lead {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  company     String?
+  source      String   @default("Website") // Website | Referral | WhatsApp | Instagram | Walk-in | Phone
+  stage       String   @default("NEW") // NEW | CONTACTED | QUOTED | NEGOTIATION | WON | LOST
+  priority    String   @default("MEDIUM") // LOW | MEDIUM | HIGH
+  destination String?
+  travelDate  DateTime?
+  pax         Int      @default(1)
+  budget      Float?
+  notes       String?
+  lostReason  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agentId String?
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  activities Activity[]
+  bookings   Booking[]
+  quotes     Quote[]
+  invoices   Invoice[]
+  events     Event[]
+}
+
+// Follow-ups, calls, notes, tasks attached to a lead
+model Activity {
+  id        String    @id @default(cuid())
+  leadId    String
+  lead      Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      String    @default("NOTE") // NOTE | CALL | EMAIL | WHATSAPP | MEETING | TASK
+  title     String
+  detail    String?
+  dueDate   DateTime?
+  done      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Bookings & Itineraries
+// ---------------------------------------------------------------------------
+model Booking {
+  id          String   @id @default(cuid())
+  reference   String   @unique // e.g. PDH-2026-0007
+  title       String
+  destination String
+  status      String   @default("DRAFT") // DRAFT | CONFIRMED | ONGOING | COMPLETED | CANCELLED
+  startDate   DateTime
+  endDate     DateTime
+  pax         Int      @default(1)
+  adults      Int      @default(1)
+  children    Int      @default(0)
+  totalAmount Float    @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  leadId String
+  lead   Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  agentId String?
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  days     ItineraryDay[]
+  invoices Invoice[]
+}
+
+model ItineraryDay {
+  id         String   @id @default(cuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  dayNumber  Int
+  date       DateTime?
+  title      String
+  location   String?
+  hotel      String?
+  meals      String?  // e.g. "Breakfast, Dinner"
+  activities String?
+  transport  String?
+}
+
+// ---------------------------------------------------------------------------
+// Quotes
+// ---------------------------------------------------------------------------
+model Quote {
+  id         String   @id @default(cuid())
+  number     String   @unique // QT-2026-0012
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  title      String   @default("Travel Quotation")
+  status     String   @default("DRAFT") // DRAFT | SENT | ACCEPTED | REJECTED | EXPIRED
+  issueDate  DateTime @default(now())
+  validUntil DateTime?
+  currency   String   @default("INR")
+  taxRate    Float    @default(5) // GST %
+  discount   Float    @default(0) // flat amount
+  notes      String?
+  terms      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  items QuoteItem[]
+}
+
+model QuoteItem {
+  id        String @id @default(cuid())
+  quoteId   String
+  quote     Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  label     String
+  detail    String?
+  quantity  Float  @default(1)
+  unitPrice Float  @default(0)
+  sortOrder Int    @default(0)
+}
+
+// ---------------------------------------------------------------------------
+// Invoices & Payments
+// ---------------------------------------------------------------------------
+model Invoice {
+  id        String   @id @default(cuid())
+  number    String   @unique // INV-2026-0034
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  status    String   @default("UNPAID") // UNPAID | PARTIAL | PAID | OVERDUE | CANCELLED
+  issueDate DateTime @default(now())
+  dueDate   DateTime?
+  currency  String   @default("INR")
+  taxRate   Float    @default(5)
+  discount  Float    @default(0)
+  notes     String?
+  terms     String?
+  showBank  Boolean  @default(true) // print bank/UPI payment details on the invoice
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items    InvoiceItem[]
+  payments Payment[]
+}
+
+model InvoiceItem {
+  id        String @id @default(cuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  label     String
+  detail    String?
+  quantity  Float  @default(1)
+  unitPrice Float  @default(0)
+  sortOrder Int    @default(0)
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amount    Float
+  method    String   @default("UPI") // UPI | Cash | Card | Bank Transfer | Cheque
+  reference String?
+  paidAt    DateTime @default(now())
+  note      String?
+}
+
+// ---------------------------------------------------------------------------
+// Social media — channels & posts
+// ---------------------------------------------------------------------------
+model SocialAccount {
+  id          String  @id @default(cuid())
+  channel     String  @unique // Instagram | Facebook | WhatsApp | YouTube | X | LinkedIn
+  handle      String
+  followers   Int     @default(0)
+  growth      Float   @default(0) // % change this month
+  engagement  Float   @default(0) // % engagement rate
+  url         String?
+  // API connection (optional) — enables auto-publish via the platform's API
+  apiKey      String? // App ID / API key
+  accessToken String? // OAuth access token
+  accountRef  String? // Page ID / Channel ID / IG business account ID
+  connected   Boolean @default(false)
+}
+
+model SocialPost {
+  id          String    @id @default(cuid())
+  channel     String    // Instagram | Facebook | WhatsApp | YouTube | X | LinkedIn
+  content     String
+  campaign    String?
+  status      String    @default("DRAFT") // DRAFT | SCHEDULED | PUBLISHED
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  likes       Int       @default(0)
+  comments    Int       @default(0)
+  shares      Int       @default(0)
+  reach       Int       @default(0)
+  createdAt   DateTime  @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Events management (weddings, corporate MICE, group tours, festivals)
+// ---------------------------------------------------------------------------
+model Event {
+  id         String   @id @default(cuid())
+  title      String
+  type       String   @default("Group Tour") // Wedding | Corporate | MICE | Festival | Group Tour
+  status     String   @default("PLANNING") // PLANNING | CONFIRMED | ONGOING | COMPLETED | CANCELLED
+  startDate  DateTime
+  endDate    DateTime
+  location   String   @default("Jaipur")
+  venue      String?
+  guests     Int      @default(0)
+  budget     Float    @default(0)
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  leadId String?
+  lead   Lead?   @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  assignments EventAssignment[]
+}
+
+model EventAssignment {
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  role    String @default("Coordinator") // Lead Planner | Coordinator | Logistics | Hospitality
+
+  @@unique([eventId, agentId])
+}
+
+// ===========================================================================
+// TRAVEL MANAGEMENT — catalog & operations
+// ===========================================================================
+
+model Tour {
+  id           String   @id @default(cuid())
+  title        String
+  code         String?
+  category     String   @default("Domestic")   // Domestic | International
+  style        String   @default("Group Tour") // Group Tour | Customized | Fixed Departure | Honeymoon | Religious | Adventure | Corporate | Seasonal
+  destination  String   @default("Rajasthan")
+  nights       Int      @default(0)
+  days         Int      @default(1)
+  priceFrom    Float    @default(0)
+  status       String   @default("Active")     // Active | Draft | Inactive
+  availability String   @default("Available")  // Available | Limited | Sold Out
+  highlights   String?
+  inclusions   String?
+  exclusions   String?
+  createdAt    DateTime @default(now())
+}
+
+model Destination {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   @default("City") // Country | State | City | Attraction | Fort | Temple | Beach | Hill Station | Wildlife
+  country     String   @default("India")
+  state       String?
+  region      String   @default("Domestic") // Domestic | International
+  bestSeason  String?
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+model Hotel {
+  id             String   @id @default(cuid())
+  name           String
+  city           String   @default("Jaipur")
+  stars          Int      @default(3)
+  category       String   @default("Deluxe") // Budget | Deluxe | Luxury | Heritage | Resort
+  mealPlan       String   @default("CP")     // EP | CP | MAP | AP
+  priceFrom      Float    @default(0)
+  totalRooms     Int      @default(0)
+  availableRooms Int      @default(0)
+  phone          String?
+  status         String   @default("Active")
+  notes          String?
+  createdAt      DateTime @default(now())
+}
+
+model Vehicle {
+  id           String   @id @default(cuid())
+  model        String
+  type         String   @default("Sedan") // Sedan | SUV | Tempo Traveller | Bus | Luxury Coach
+  registration String?
+  capacity     Int      @default(4)
+  driverName   String?
+  driverPhone  String?
+  pricePerDay  Float    @default(0)
+  status       String   @default("Available") // Available | On Trip | Maintenance
+  gps          Boolean  @default(true)
+  createdAt    DateTime @default(now())
+}
+
+model Guide {
+  id             String   @id @default(cuid())
+  name           String
+  languages      String   @default("Hindi, English")
+  city           String   @default("Jaipur")
+  experience     Int      @default(1)
+  phone          String?
+  specialization String?
+  rating         Float    @default(4.5)
+  dailyRate      Float    @default(0)
+  available      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+}
+
+model Vendor {
+  id             String   @id @default(cuid())
+  name           String
+  type           String   @default("Hotel") // Hotel | Airline | Transport | Restaurant | Activity Provider | Local Partner
+  contactPerson  String?
+  phone          String?
+  email          String?
+  city           String   @default("Jaipur")
+  contractStatus String   @default("Active") // Active | Pending | Expired
+  outstanding    Float    @default(0)
+  rating         Float    @default(4.5)
+  createdAt      DateTime @default(now())
+}
+
+model Excursion {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("Sightseeing") // Sightseeing | Adventure | Museum | Theme Park | Local Tour | Event Ticket
+  city        String   @default("Jaipur")
+  duration    String?
+  price       Float    @default(0)
+  description String?
+  createdAt   DateTime @default(now())
+}
+
+model Traveler {
+  id               String    @id @default(cuid())
+  name             String
+  email            String?
+  phone            String?
+  gender           String?
+  nationality      String    @default("Indian")
+  passportNo       String?
+  passportExpiry   DateTime?
+  visaStatus       String    @default("Not Required") // Not Required | Applied | Approved | Rejected
+  emergencyContact String?
+  specialRequests  String?
+  medicalNotes     String?
+  createdAt        DateTime  @default(now())
+}
+
+model Flight {
+  id        String    @id @default(cuid())
+  airline   String
+  flightNo  String?
+  pnr       String?
+  fromCity  String    @default("Jaipur")
+  toCity    String    @default("Goa")
+  departAt  DateTime?
+  arriveAt  DateTime?
+  seat      String?
+  baggage   String?
+  status    String    @default("Confirmed") // Confirmed | Pending | Cancelled | Delayed
+  createdAt DateTime  @default(now())
+}
+
+model TravelDocument {
+  id        String    @id @default(cuid())
+  title     String
+  type      String    @default("Passport") // Passport | Visa | Ticket | Hotel Voucher | Insurance | Invoice | Travel Permit | Agreement
+  owner     String?
+  number    String?
+  issuedAt  DateTime?
+  expiresAt DateTime?
+  status    String    @default("Valid") // Valid | Expiring | Expired | Pending
+  createdAt DateTime  @default(now())
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  traveler  String
+  type      String   @default("Review") // Review | Complaint | Suggestion
+  rating    Int      @default(5)
+  tour      String?
+  comment   String?
+  nps       Int      @default(9)
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Company settings / branding
+// ---------------------------------------------------------------------------
+model Setting {
+  id           String  @id @default("company")
+  companyName  String  @default("Padhaaro Sa..")
+  tagline      String  @default("Hospitality Services")
+  email        String  @default("hello@padhaaro.com")
+  phone        String  @default("+91 98290 00000")
+  website      String  @default("www.padhaaro.com")
+  address      String  @default("Jaipur, Rajasthan, India")
+  gstin        String  @default("08ABCDE1234F1Z5")
+  currency     String  @default("INR")
+  logoUrl      String  @default("/logo.png")
+  bankName     String  @default("HDFC Bank")
+  bankAccount  String  @default("50100XXXXXX789")
+  bankIfsc     String  @default("HDFC0000123")
+  upiId        String  @default("padhaaro@hdfcbank")
+  invoiceNotes String  @default("Thank you for choosing Padhaaro Sa.. Padharo mhare desh!")
+}
