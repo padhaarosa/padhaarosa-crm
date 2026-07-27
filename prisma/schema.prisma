@@ -19,6 +19,7 @@ model Agent {
   email       String   @unique
   phone       String?
   role        String   @default("Agent") // Admin | Manager | Agent
+  passwordHash String? @map("password_hash") // scrypt$<salt>$<key>; null = cannot sign in
   designation String   @default("Travel Consultant")
   department  String   @default("Sales")
   location    String   @default("Jaipur")

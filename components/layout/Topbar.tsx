@@ -3,7 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Plus, Users, Plane, FileText, ReceiptIndianRupee, ChevronDown } from "lucide-react";
+import { Search, Plus, Users, Plane, FileText, ReceiptIndianRupee, ChevronDown, Settings, LogOut } from "lucide-react";
+import { logout } from "@/app/actions/auth";
+import type { Session } from "@/lib/session";
 
 const QUICK = [
   { href: "/leads?new=1", label: "New Lead", icon: Users },
@@ -12,15 +14,30 @@ const QUICK = [
   { href: "/invoices?new=1", label: "New Invoice", icon: ReceiptIndianRupee },
 ];
 
-export function Topbar() {
+function initials(name: string) {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase() || "PS"
+  );
+}
+
+export function Topbar({ user }: { user: Session | null }) {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+      if (userRef.current && !userRef.current.contains(e.target as Node)) setUserOpen(false);
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
@@ -78,14 +95,52 @@ export function Topbar() {
             )}
           </div>
 
-          <div className="flex items-center gap-2.5 rounded-xl bg-white border border-line pl-1 pr-3 py-1">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-plum-700 text-white text-xs font-bold">
-              PS
-            </span>
-            <div className="hidden sm:block leading-tight">
-              <div className="text-[13px] font-semibold text-ink">Admin</div>
-              <div className="text-[10px] text-ink-faint">Padhaaro Sa..</div>
-            </div>
+          <div className="relative" ref={userRef}>
+            <button
+              onClick={() => setUserOpen((o) => !o)}
+              className="flex items-center gap-2.5 rounded-xl bg-white border border-line pl-1 pr-2.5 py-1 hover:border-brand-300"
+            >
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-plum-700 text-white text-xs font-bold">
+                {initials(user?.name ?? "Padhaaro Sa..")}
+              </span>
+              <div className="hidden sm:block leading-tight text-left">
+                <div className="text-[13px] font-semibold text-ink">{user?.name ?? "Guest"}</div>
+                <div className="text-[10px] text-ink-faint">{user?.role ?? "Padhaaro Sa.."}</div>
+              </div>
+              <ChevronDown className="h-3.5 w-3.5 text-ink-faint" />
+            </button>
+
+            {userOpen && (
+              <div className="absolute right-0 mt-2 w-60 rounded-xl bg-white shadow-pop border border-line p-1.5 z-50 animate-fade-in">
+                {user && (
+                  <div className="px-3 py-2 border-b border-line mb-1.5">
+                    <div className="text-sm font-semibold text-ink truncate">{user.name}</div>
+                    <div className="text-[11px] text-ink-faint truncate">{user.email}</div>
+                  </div>
+                )}
+                <Link
+                  href="/settings"
+                  onClick={() => setUserOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink hover:bg-cream-200"
+                >
+                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-50 text-brand-600">
+                    <Settings className="h-4 w-4" />
+                  </span>
+                  Settings &amp; password
+                </Link>
+                <form action={logout}>
+                  <button
+                    type="submit"
+                    className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink hover:bg-cream-200"
+                  >
+                    <span className="grid h-8 w-8 place-items-center rounded-lg bg-cream-200 text-ink-soft">
+                      <LogOut className="h-4 w-4" />
+                    </span>
+                    Sign out
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,6 +1,11 @@
 import { PrismaClient } from "@prisma/client";
+import { hashPassword } from "../lib/password";
 
 const prisma = new PrismaClient();
+
+// Every seeded agent gets the same starter password; override with SEED_PASSWORD.
+const SEED_PASSWORD = process.env.SEED_PASSWORD ?? "padhaaro123";
+const seedHash = hashPassword(SEED_PASSWORD);
 
 // helper: days offset from today
 const d = (offset: number) => {
@@ -80,6 +85,9 @@ async function main() {
   const arjun = await prisma.agent.create({
     data: { name: "Arjun Nair", email: "arjun@padhaaro.com", phone: "+91 98290 66666", role: "Agent", designation: "Digital Marketing Lead", department: "Marketing", location: "Jaipur", target: 400000, joinedAt: d(-240) },
   });
+
+  // Everyone can sign in with the starter password until they change it.
+  await prisma.agent.updateMany({ data: { passwordHash: seedHash } });
 
   const agents = [meera, vikram, anjali, rohit, sneha];
   const pick = (i: number) => agents[i % agents.length];
@@ -668,6 +676,7 @@ async function main() {
 
   console.log("✅  Seed complete:");
   console.log("   Agents:   " + (await prisma.agent.count()));
+  console.log("   Sign in:  meera@padhaaro.com / " + SEED_PASSWORD);
   console.log("   Leads:    " + (await prisma.lead.count()));
   console.log("   Bookings: " + (await prisma.booking.count()));
   console.log("   Quotes:   " + (await prisma.quote.count()));

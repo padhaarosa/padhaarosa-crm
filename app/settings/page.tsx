@@ -5,18 +5,20 @@ import { PageHeader, Card, CardHeader, Avatar, Badge } from "@/components/ui/pri
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { updateSettings } from "@/app/actions/settings";
+import { requireSession } from "@/lib/auth";
+import { ChangePasswordCard } from "@/components/auth/ChangePasswordCard";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  const [s, agents] = await Promise.all([getSettings(), getAgents()]);
+  const [s, agents, session] = await Promise.all([getSettings(), getAgents(), requireSession()]);
 
   return (
     <div>
       <PageHeader title="Settings" subtitle="Your brand, contact and billing details across the CRM" icon={Settings} />
 
-      <form action={updateSettings} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <form action={updateSettings} className="lg:col-span-2 space-y-6">
           {/* Branding */}
           <Card>
             <CardHeader title="Company & Branding" subtitle="Shown on quotes, invoices & the sidebar" icon={Building2} />
@@ -80,10 +82,12 @@ export default async function SettingsPage() {
               <SubmitButton>Save Settings</SubmitButton>
             </div>
           </div>
-        </div>
+        </form>
 
-        {/* Team sidebar */}
+        {/* Account & team sidebar */}
         <div className="space-y-6">
+          <ChangePasswordCard email={session.email} />
+
           <Card>
             <CardHeader title="Team" subtitle={`${agents.length} members`} icon={Users} />
             <div className="divide-y divide-line">
@@ -114,7 +118,7 @@ export default async function SettingsPage() {
             </div>
           </Card>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

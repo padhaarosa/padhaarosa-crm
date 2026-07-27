@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { chromium } from "playwright";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,11 @@ export const dynamic = "force-dynamic";
  * Renders the (print-styled) document page headlessly and streams back a PDF.
  */
 export async function GET(req: NextRequest) {
+  const sessionCookie = req.cookies.get(SESSION_COOKIE)?.value;
+  if (!(await verifySessionToken(sessionCookie))) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const path = req.nextUrl.searchParams.get("path") ?? "";
   const name = (req.nextUrl.searchParams.get("name") ?? "document").replace(/[^\w.-]/g, "_");
 
@@ -24,6 +30,10 @@ export async function GET(req: NextRequest) {
     browser = await chromium.launch();
     // 748px ≈ 198mm printable width (210mm A4 minus 6mm margins) at 96dpi
     const page = await browser.newPage({ viewport: { width: 748, height: 1123 } });
+    // The document pages are behind auth — hand the headless browser our session.
+    await page.context().addCookies([
+      { name: SESSION_COOKIE, value: sessionCookie!, domain: "127.0.0.1", path: "/" },
+    ]);
     await page.goto(`http://127.0.0.1:${port}${path}`, { waitUntil: "networkidle", timeout: 30000 });
     await page.emulateMedia({ media: "print" });
     await page.waitForTimeout(200);
