@@ -3,7 +3,7 @@
 A full-stack CRM to run a travel business in one place — leads, bookings & itineraries,
 quotations, invoices and payments — with the **Padhaaro Sa..** Rajasthani heritage branding.
 
-Built with **Next.js 15 (App Router) · TypeScript · Tailwind CSS · Prisma · SQLite**.
+Built with **Next.js 15 (App Router) · TypeScript · Tailwind CSS · Prisma · MongoDB**.
 
 ---
 
@@ -22,7 +22,7 @@ Built with **Next.js 15 (App Router) · TypeScript · Tailwind CSS · Prisma · 
 - **Settings** — edit company branding, contact, GSTIN, bank details and document footer;
   team roster.
 
-All data is stored in a local **SQLite** database via Prisma — no external services required.
+All data is stored in **MongoDB** via Prisma (MongoDB Atlas, or any local replica set).
 
 ---
 
@@ -32,10 +32,13 @@ All data is stored in a local **SQLite** database via Prisma — no external ser
 # 1. install dependencies
 npm install
 
-# 2. create the database, generate the client and load demo data
-npm run setup          # = prisma generate + migrate + seed
+# 2. point .env at your MongoDB database
+#    DATABASE_URL="mongodb+srv://USER:PASS@CLUSTER.mongodb.net/padhaaro-crm"
 
-# 3. run in development
+# 3. push the schema, generate the client and load demo data
+npm run setup          # = prisma generate + db push + seed
+
+# 4. run in development
 npm run dev            # http://localhost:3000
 
 # — or — build & run production
@@ -43,8 +46,12 @@ npm run build
 npm start
 ```
 
-> The database (`prisma/dev.db`) and demo data are created by `npm run setup`.
+> The collections and demo data are created in your MongoDB database by `npm run setup`.
 > To reload fresh demo data at any time: `npm run seed`.
+>
+> **Note:** Prisma writes to MongoDB through transactions, so the database must be a
+> replica set. MongoDB Atlas (any tier, including free M0) works out of the box; a plain
+> standalone `mongod` does not.
 
 ---
 
@@ -55,9 +62,9 @@ npm start
 | `npm run dev`     | Start the dev server                      |
 | `npm run build`   | Production build (runs `prisma generate`) |
 | `npm start`       | Start the production server               |
-| `npm run setup`   | Generate client + migrate + seed          |
+| `npm run setup`   | Generate client + push schema + seed      |
 | `npm run seed`    | Re-seed demo data                         |
-| `npm run db:migrate` | Create/apply migrations                |
+| `npm run db:push` | Push the schema to MongoDB                |
 
 ---
 
