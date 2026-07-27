@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { reqStr } from "@/lib/form";
 import { getSession, requireSession } from "@/lib/auth";
-import { hashPassword, passwordProblem, verifyPassword } from "@/lib/password";
+import { hashPassword, passwordProblem, safeCompare, verifyPassword } from "@/lib/password";
 import { SESSION_COOKIE, SESSION_MAX_AGE, createSessionToken } from "@/lib/session";
 
 export type FormState = { error?: string; ok?: string };
@@ -33,13 +33,37 @@ export async function login(_prev: FormState, fd: FormData): Promise<FormState> 
 
   const agent = await prisma.agent.findUnique({ where: { email } });
 
-  // Same message either way — don't reveal which emails exist.
-  if (!agent || !agent.active || !verifyPassword(password, agent.passwordHash)) {
-    return { error: "Incorrect email or password." };
+  // A stored password always wins. Once the owner sets one in Settings, the
+  // bootstrap credential below stops being consulted for them.
+  let user = agent && agent.active && verifyPassword(password, agent.passwordHash) ? agent : null;
+
+  // Owner bootstrap: the credential lives only in environment variables, never
+  // in the repo or the seed. The first successful sign-in materialises the
+  // agent row so the rest of the CRM has a real user to attach work to.
+  if (!user && !agent?.passwordHash) {
+    const ownerEmail = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
+    const ownerPassword = process.env.ADMIN_PASSWORD ?? "";
+
+    if (ownerEmail && ownerPassword && email === ownerEmail && safeCompare(password, ownerPassword)) {
+      user = await prisma.agent.upsert({
+        where: { email: ownerEmail },
+        update: { role: "Admin", active: true },
+        create: {
+          name: (process.env.ADMIN_NAME ?? "").trim() || "Administrator",
+          email: ownerEmail,
+          role: "Admin",
+          designation: "Owner",
+          department: "Leadership",
+        },
+      });
+    }
   }
 
+  // Same message either way — don't reveal which emails exist.
+  if (!user) return { error: "Incorrect email or password." };
+
   const jar = await cookies();
-  jar.set(SESSION_COOKIE, await createSessionToken(agent), cookieOptions);
+  jar.set(SESSION_COOKIE, await createSessionToken(user), cookieOptions);
 
   redirect(next);
 }
@@ -65,9 +89,17 @@ export async function changePassword(_prev: FormState, fd: FormData): Promise<Fo
   if (problem) return { error: problem };
 
   const agent = await prisma.agent.findUnique({ where: { id: session.id } });
-  if (!agent || !verifyPassword(current, agent.passwordHash)) {
-    return { error: "Your current password is incorrect." };
-  }
+  if (!agent) return { error: "Your current password is incorrect." };
+
+  // Someone who signed in with the bootstrap credential has no stored hash yet,
+  // so accept the env password as "current" for that first change.
+  const ownerEmail = (process.env.ADMIN_EMAIL ?? "").trim().toLowerCase();
+  const ownerPassword = process.env.ADMIN_PASSWORD ?? "";
+  const currentIsValid = agent.passwordHash
+    ? verifyPassword(current, agent.passwordHash)
+    : Boolean(ownerPassword) && agent.email === ownerEmail && safeCompare(current, ownerPassword);
+
+  if (!currentIsValid) return { error: "Your current password is incorrect." };
 
   await prisma.agent.update({
     where: { id: agent.id },

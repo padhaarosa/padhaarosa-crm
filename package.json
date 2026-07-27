@@ -13,7 +13,6 @@
     "db:migrate": "prisma db push",
     "db:seed": "node --loader ts-node/esm prisma/seed.ts",
     "seed": "tsx prisma/seed.ts",
-    "admin": "tsx prisma/admin.ts",
     "reset": "tsx prisma/reset.ts",
     "setup": "prisma generate && prisma db push && tsx prisma/seed.ts"
   },
